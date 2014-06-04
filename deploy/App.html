@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>test</title>
+
+    <script type="text/javascript" src="/apps/2.0p5/sdk.js?wsapiVersion=1.43"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function () {
+                Ext.define("CustomApp",{extend:"Rally.app.App",componentCls:"app",items:[{xtype:"container",itemId:"selector_box",layout:{type:"hbox"}},{xtype:"container",itemId:"feature_box",tpl:"<tpl>Feature chosen: {FormattedID}:{Name}</tpl>"},{xtype:"container",itemId:"display_box"}],launch:function(){this.down("#selector_box").add({xtype:"rallybutton",text:"Choose Feature",margin:5,listeners:{scope:this,click:function(){this._showFeatureChooser()}}}),this.down("#selector_box").add({xtype:"container",width:100})},_showFeatureChooser:function(){console.log("here we are-showFeatureChooser"),Ext.create("Rally.ui.dialog.ChooserDialog",{artifactTypes:["portfolioitem/feature"],autoShow:!0,title:"Feature Chooser",listeners:{scope:this,artifactChosen:function(selected_record){var feature_data=null;selected_record&&(feature_data=selected_record.getData()),this.feature=selected_record,this.down("#feature_box").update(feature_data),this._addCalendarBox()}}})},_addCalendarBox:function(){this.calendar_box&&this.calendar_box.destroy(),this.calendar_box=this.down("#selector_box").add({xtype:"rallydatefield",fieldLabel:"From Date",listeners:{scope:this,change:function(datebox,value){console.log("date",value),this.selected_date=value,this._loadFeatureData(this.feature)}}}).setValue(new Date)},_loadFeatureData:function(feature){console.log("here we are-loadFeatureData"),Ext.create("Rally.data.WsapiDataStore",{model:"portfolioitem",autoLoad:!0,filters:[{property:"FormattedID",value:feature.get("FormattedID")}],fetch:["Name","RevisionHistory","Revisions","CreationDate","Description","User"],listeners:{scope:this,load:function(store,items){console.log(items);var revStore=this._loadRevisionHistory(items)}}})},_loadGrid:function(store){console.log("here we are-loadGrid"),this.grid&&this.grid.destroy(),this.grid=this.down("#display_box").add({xtype:"rallygrid",store:store,columnCfgs:[{text:"Description",dataIndex:"Description",flex:1,renderer:function(value,metadata,record,colindex,rowindex){return value}},{text:"Date",dataIndex:"CreationDate",renderer:function(value){return value.replace(/T.*$/,"")}},{text:"User",dataIndex:"User",renderer:function(value,metadata,record){return value._refObjectName}}]})},_loadRevisionHistory:function(features){console.log("here we are-loadRevisionHistory");var revRows=[];Ext.Array.each(features,function(feature){console.log("rev history",feature.get("RevisionHistory").Revisions),Ext.Array.each(feature.get("RevisionHistory").Revisions,function(revision){revRows.push(revision)})}),this.revRows=revRows,this._prepareRevisionHistory()},_prepareRevisionHistory:function(){console.log("_prepareRevisionHistory",this.revRows);var me=this,filtered_rows=[];Ext.Array.each(this.revRows,function(rev_row){if(rev_row.ShortDate=rev_row.CreationDate.replace(/T.*$/,""),console.log("short date",rev_row.ShortDate),me.selected_date){var iso_selected_date=Rally.util.DateTime.toIsoString(me.selected_date);rev_row.CreationDate.localeCompare(iso_selected_date)>-1&&me._keepBasedOnDescription(rev_row.Description)&&filtered_rows.push(rev_row)}else filtered_rows.push(rev_row)});var revHistoryStore=Ext.create("Rally.data.custom.Store",{sorters:[{property:"CreationDate",direction:"ASC"}],data:filtered_rows});this._loadGrid(revHistoryStore)},_keepBasedOnDescription:function(description){return/USERSTORIES/.test(description)}});
+
+            Rally.launchApp('CustomApp', {
+                name:"test",
+	            parentRepos:""
+            });
+
+        });
+    </script>
+
+
+    <style type="text/css">
+        .app {
+     /* Add app styles here */
+}
+
+    </style>
+</head>
+<body></body>
+</html>
