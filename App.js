@@ -4,14 +4,18 @@ Ext.define('CustomApp', {
     componentCls: 'app',
     
     items:[ 
-        {xtype:'container', itemId:'selector_box', layout: { type:'hbox'} },
-        {xtype:'container',itemId:'feature_box',tpl:"<tpl>Feature chosen: {FormattedID}:{Name}</tpl>" },
+        {xtype:'container', itemId:'selector_box', layout: { type:'hbox'}, items: [
+            {xtype:'container', itemId:'button_box', margin: 15 },
+            {xtype:'container', itemId:'date_box', margin: 18 },
+            {xtype:'container', itemId:'feature_box', margin: 18, tpl:"<span class='titlebar-text'><tpl>{FormattedID}: {Name:ellipsis(45)}</tpl></span>"}
+        ]},
+       
         {xtype:'container',itemId:'display_box'}
     ],
     
     launch: function() {
         
-        this.down('#selector_box').add({
+        this.down('#button_box').add({
             xtype:'rallybutton',
             text:'Choose Feature',
             margin: 5,
@@ -23,17 +27,6 @@ Ext.define('CustomApp', {
             }
         });
        
-        // add an empty separator
-        this.down('#selector_box').add({xtype:'container',width: 100});
-        
-        
-        //load the full contents of feature
-        
-        //create the custom store for the rev history
-        //get the revision history
-        //create the grid
-        //populate the grid
-      
         
     },
     _showFeatureChooser: function(){
@@ -58,13 +51,16 @@ Ext.define('CustomApp', {
     _addCalendarBox: function() {
         if ( this.calendar_box ) { this.calendar_box.destroy(); }
         
-        this.calendar_box = this.down('#selector_box').add({
+        this.calendar_box = this.down('#date_box').add({
             xtype: 'rallydatefield',
             fieldLabel: 'From Date',
+            labelWidth: 55,
+            stateEvents: ['change','select'],
+            stateId: 'ts-feature-defect-date-box',
+            stateful: true,
             listeners: {
                 scope: this,
                 change: function(datebox, value) {
-                    console.log('date', value);
                     this.selected_date = value;
                     this._loadFeatureData(this.feature);
                     //this._prepareRevisionHistory();
@@ -115,7 +111,7 @@ Ext.define('CustomApp', {
         });
     },
     _loadRevisionHistory: function(features){
-        console.log('here we are-loadRevisionHistory');
+        console.log('loadRevisionHistory');
         var revRows = [];
         Ext.Array.each(features, function(feature){
             console.log('rev history', feature.get('RevisionHistory').Revisions);
@@ -135,7 +131,6 @@ Ext.define('CustomApp', {
         Ext.Array.each( this.revRows, function(rev_row){
             rev_row.ShortDate = rev_row.CreationDate.replace(/T.*$/,"");
             
-            console.log('short date',rev_row.ShortDate);
             if ( me.selected_date ){
                 var iso_selected_date = Rally.util.DateTime.toIsoString(me.selected_date);
                 if ( rev_row.CreationDate.localeCompare(iso_selected_date) > -1 ) {
@@ -158,6 +153,7 @@ Ext.define('CustomApp', {
         this._loadGrid(revHistoryStore);
     },
     _keepBasedOnDescription:function(description) {
-        return /USERSTORIES/.test(description);
+        var isUserStoryChange = /USERSTORIES/.test(description) || /USER STORIES/.test(description);
+        return isUserStoryChange;
     }
 });
